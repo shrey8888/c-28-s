@@ -1,117 +1,174 @@
 const Engine = Matter.Engine;
-const Render = Matter.Render;
 const World = Matter.World;
 const Bodies = Matter.Bodies;
 const Constraint = Matter.Constraint;
-const Body = Matter.Body;
-const Composites = Matter.Composites;
-const Composite = Matter.Composite;
 
-let engine;
-let world;
-var ground, bridge;
-var leftWall, rightWall;
-var jointPoint;
-var jointLink;
-var zombie;
-var zombie1, zombie2, zombie3, zombie4;
-var breakButton;
-var backgroundImage;
+var engine, world;
+var canvas;
+var palyer, playerBase, playerArcher;
+var playerArrows = [];
+var board1, board2;
+var numberOfArrows = 10;
 
-var stones = [];
+var score = 0;
 
 function preload() {
-  zombie1 = loadImage("./assets/zombie1.png");
-  zombie2 = loadImage("./assets/zombie2.png");
-
-  zombie3 = loadImage("./assets/zombie3.png");
-  zombie4 = loadImage("./assets/zombie4.png");
-
-  backgroundImage = loadImage("./assets/background.png");
+  backgroundImg = loadImage("./assets/background.png");
 }
 
 function setup() {
-  createCanvas(windowWidth, windowHeight);
+  canvas = createCanvas(windowWidth, windowHeight);
+
   engine = Engine.create();
   world = engine.world;
-  frameRate(80);
 
-  ground = new Base(0, height - 10, width * 2, 20);
-  leftWall = new Base(100, height - 300, 200, height / 2 + 100);
-  rightWall = new Base(width - 100, height - 300, 200, height / 2 + 100);
+  playerBase = new PlayerBase(300, 500, 180, 150);
+  player = new Player(285, playerBase.body.position.y - 153, 50, 180);
+  playerArcher = new PlayerArcher(
+    340,
+    playerBase.body.position.y - 180,
+    120,
+    120
+  );
 
-  bridge = new Bridge(30, { x: 50, y: height / 2 - 140 });
-  jointPoint = new Base(width - 250, height / 2 - 100, 40, 20);
-
-  Matter.Composite.add(bridge.body, jointPoint);
-  jointLink = new Link(bridge, jointPoint);
-
-  for (var i = 0; i <= 8; i++) {
-    var x = random(width / 2 - 200, width / 2 + 300);
-    var y = random(-100, 100);
-    var stone = new Stone(x, y, 80, 80);
-    stones.push(stone);
-  }
-
-  zombie = createSprite(width / 2, height - 110);
-  zombie.addAnimation("lefttoright", zombie1, zombie2, zombie1);
-  zombie.addAnimation("righttoleft", zombie3, zombie4, zombie3);
-  zombie.scale = 0.1;
-  zombie.velocityX = 10;
-
-  breakButton = createButton("");
-  breakButton.position(width - 200, height / 2 - 50);
-  breakButton.class("breakbutton");
-
-  //breakButton.mouseClicked(handleButtonPress);
-  breakButton.mousePressed(handleButtonPress);
-  //breakButton.mouse(handleButtonPress);
-  //breakButton.mousePressed(ButtonPress);
-
-
+  board1 = new Board(width - 300, 330, 50, 200);
+  board2 = new Board(width - 550, height - 300, 50, 200);
 }
 
 function draw() {
-  background(backgroundImage);
+  background(backgroundImg);
+
   Engine.update(engine);
 
-  bridge.show();
+  playerBase.display();
+  player.display();
+  playerArcher.display();
 
-  for (var stone of stones) {
-    stone.show();
+  board1.display();
+  board2.display();
+
+  for (var i = 0; i < playerArrows.length; i++) {
+    if (playerArrows[i] !== undefined) {
+      playerArrows[i].display();
+
+      var board1Collision = Matter.SAT.collides(
+        board1.body,
+        playerArrows[i].body
+      );
+
+      var board2Collision = Matter.SAT.collides(
+        board2.body,
+        playerArrows[i].body
+      );
+
+      /*if (board1Collision || board2Collision) {
+        score += 5;
+      }*/
+
+      /*if (board1Collision.collided && board2Collision.collided) {
+        score += 5;
+      }*/
+
+      if (board1Collision.collided || board2Collision.collided) {
+        score += 5;
+      }
+
+      /*if (board1Collision.collided || board2Collision.collided) {
+        score = 5;
+      }*/
+
+      
+      var posX = playerArrows[i].body.position.x;
+      var posY = playerArrows[i].body.position.y;
+
+      if (posX > width || posY > height) {
+        if (!playerArrows[i].isRemoved) {
+          playerArrows[i].remove(i);
+        } else {
+          playerArrows[i].trajectory = [];
+        }
+      }
+    }
   }
 
-  if (zombie.position.x >= width - 300) {
-    zombie.velocityX = -10;
-    zombie.changeAnimation("righttoleft");
+  // Title
+  fill("#FFFF");
+  textAlign("center");
+  textSize(40);
+  text("EPIC ARCHERY", width / 2, 100);
+
+  // Score
+  fill("#FFFF");
+  textAlign("center");
+  textSize(30);
+  text("Score " + score, width - 200, 100);
+
+  // Arrow Count
+  fill("#FFFF");
+  textAlign("center");
+  textSize(30);
+  text("Remaining Arrows : " + numberOfArrows, 200, 100);
+
+  /*if (numberOfArrows == 5) {
+    gameOver();
+  }*/
+
+  if (numberOfArrows == 0) {
+    gameOver();
   }
 
-  if (zombie.position.x <= 300) {
-    zombie.velocityX = 10;
-    zombie.changeAnimation("lefttoright");
-  }
+  /*if (numberOfArrows = 0) {
+    gameOver();
+  }*/
 
-  drawSprites();
+  /*if (numberOfArrows == 0) {
+    gameOver;
+  }*/
+
 }
 
-function handleButtonPress() {
-  /* jointLink=dettach();
-  setTimeout(() => {
-    bridge.break();
-  }, 1500); */
+function keyPressed() {
+  if (keyCode === 32) {
+    if (numberOfArrows > 0) {
+      var posX = playerArcher.body.position.x;
+      var posY = playerArcher.body.position.y;
+      var angle = playerArcher.body.angle;
 
-  /* jointLink.dettach();
-  setTimeout(() => {
-    break();
-  }, 1500); */
+      var arrow = new PlayerArrow(posX, posY, 100, 10, angle);
 
-  /* jointLink.dettach();
-  setTimeout(() => {
-    bridge.break();
-  }, 5); */
-
-   jointLink.dettach();
-  setTimeout(() => {
-    bridge.break();
-  }, 1500); 
+      arrow.trajectory = [];
+      Matter.Body.setAngle(arrow.body, angle);
+      playerArrows.push(arrow);
+      numberOfArrows -= 1;
+    }
+  }
 }
+
+function keyReleased() {
+  if (keyCode === 32) {
+    if (playerArrows.length) {
+      var angle = playerArcher.body.angle;
+      playerArrows[playerArrows.length - 1].shoot(angle);
+    }
+  }
+}
+
+function gameOver() {
+  swal(
+    {
+      title: `Game Over!!!`,
+      text: "Thanks for playing!!",
+      imageUrl:
+        "https://raw.githubusercontent.com/vishalgaddam873/PiratesInvision/main/assets/board.png",
+      imageSize: "150x150",
+      confirmButtonText: "Play Again"
+    },
+    function(isConfirm) {
+      if (isConfirm) {
+        location.reload();
+      }
+    }
+  );
+}
+
+
